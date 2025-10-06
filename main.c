@@ -8,6 +8,9 @@
 #define HANIX_MAJOR_NUMBER 177
 #define HANIX_BUFFER_SIZE 32
 
+#define HANIX_MAGIC_NUMBER 'C'
+#define HANIX_IOCTL_CLEAR _IO(HANIX_MAGIC_NUMBER, 0)
+
 // Define and initialize a read-write lock
 static DEFINE_RWLOCK(hanixDevice_RWLock);
 
@@ -61,10 +64,24 @@ static ssize_t hanuixDevice_write(struct file *fp, const char __user *buf, size_
     return readBytes;
 }
 
+static long hanuixDevice_ioctl(struct file *fp, unsigned int cmd, unsigned long arg)
+{
+    switch (cmd) {
+        case HANIX_IOCTL_CLEAR:
+            memset(hanuixDevice_buffer, 0, HANIX_BUFFER_SIZE);
+            break;
+        default:
+            // Invalid Argument
+            return -EINVAL;
+    }
+    return 0;
+}
+
 static struct file_operations hanuixDevice_fileOperations = {
     .open = hanuixDevice_open,
     .read  = hanuixDevice_read,
     .write = hanuixDevice_write,
+    .unlocked_ioctl = hanuixDevice_ioctl,
 };
 
 static int __init hanixModule_init(void)
