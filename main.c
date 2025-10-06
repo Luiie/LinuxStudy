@@ -3,13 +3,20 @@
 #include <linux/device.h>
 #include <linux/spinlock.h> // For read-write locks
 #include <linux/uaccess.h>  // For copy_to_user/copy_from_user
+#include <linux/device.h>  // For device_create
 
-#define HANIX_DEVICE_NAME "hanix-device"
+#define HANIX_DEVICE_NAME "hanix"
+#define HANIX_CLASS_NAME "hanix"
 #define HANIX_MAJOR_NUMBER 177
+#define hanuixDevice_minor 17
 #define HANIX_BUFFER_SIZE 32
 
 #define HANIX_MAGIC_NUMBER 'C'
 #define HANIX_IOCTL_CLEAR _IO(HANIX_MAGIC_NUMBER, 0)
+
+static int hanuixDevice_major;
+static struct class *hanuixClass;
+static struct device *hanuixDevice;
 
 // Define and initialize a read-write lock
 static DEFINE_RWLOCK(hanixDevice_RWLock);
@@ -87,9 +94,16 @@ static struct file_operations hanuixDevice_fileOperations = {
 static int __init hanixModule_init(void)
 {
     printk(KERN_DEBUG "%s\n", __func__);
-    return register_chrdev(HANIX_MAJOR_NUMBER,
+    hanuixDevice_major = register_chrdev(0,
                            HANIX_DEVICE_NAME,
                            &hanuixDevice_fileOperations);
+    hanuixClass = class_create(THIS_MODULE, HANIX_DEVICE_NAME);
+    hanuixDevice = device_create(hanuixClass,
+                                 NULL, MKDEV(hanuixDevice_major, hanuixDevice_minor),
+                                 NULL, "%s%d",
+                                 HANIX_DEVICE_NAME, hanuixDevice_minor);
+
+    return 0;
 }
 
 static void __exit hanixModule_exit(void)
